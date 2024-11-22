@@ -42,18 +42,12 @@ body {
   }
 
   .calc-rows {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .calc-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
   }
 
   .button {
-    flex: 1;
     padding: 15px;
     font-size: 18px;
     border: none;
@@ -61,7 +55,10 @@ body {
     background-color: white;
     cursor: pointer;
     transition: background-color 0.2s;
-    min-width: 0;
+  }
+
+  .zero {
+    grid-column: span 2;
   }
 
   .button:hover {
@@ -79,8 +76,4 @@ body {
 
   .equals:hover {
     background-color: #0b5ed7;
-  }
-
-  .decimal {
-    font-weight: bold;
   }
