@@ -25,49 +25,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }  
     };
 
-    // const buttons = document.querySelector('.calc-rows');
-    // const currentOperation = document.querySelector('.current-operation');
-    // const previousOperation = document.querySelector('.previous-operation');
-    // const operators = buttons.querySelectorAll('.operator');
-
-    // const nums = {
-    //     num1: '',
-    //     num2: '',
-    // }
-    
-    // let operator = '';
-    // let operatorInput = false;
-    // let decimalInput = false;
-    // let percentInput = false;
-    // let count = 1;
-    // let resetCurrent = false;
-
-
-    const add = function(a, b) {
-        return a + b;
-    };
-    
-    const subtract = function(a, b) {
-        return a - b;
-    };
-    
-    const divide = function(a, b) {
-        if (b === 0) {
-            return 'Here be dragons';
-        }
-        return a / b;
-    };
-    
-    const multiply = function(a, b) {
-        return a * b;
-    };
-
     const operations = {
-        'add': add,
-        'subtract': subtract,
-        'multiply': multiply,
-        'divide': divide,
+        add: (a, b) => a + b,
+        subtract: (a, b) => a - b,
+        multiply: (a, b) => a * b,
+        divide: (a, b) => b === 0 ? 'Here be dragons' : a / b
+    };
+
+    const formatNumber = (num) => {
+        const rounded = Math.round(num * 1000) / 1000;
+        return rounded.toString().length > 12 ? rounded.toExponential(6) : rounded.toString();
     }
+
+    const operate = function(a, b, operator) {
+        const num1 = parseFloat(a);
+        const num2 = parseFloat(b);
+
+        if (isNaN(num1) || isNaN(num2)) {
+            return 'Error';
+        }
+
+        const result = operations[operator](num1, num2);
+
+        if (typeof result === 'string') {
+            displayResult(result, calculator.display.current.textContent);
+        } else {
+            displayResult(formatNumber(result), calculator.display.current.textContent)
+        }
+    };
 
     const reset = () => {
         state.currentCount = 1;
@@ -92,12 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         calculator.operators.forEach(operator => operator.classList.remove('active'));
     }
 
-    const operate = function(a, b, operator) {
-        a = Number(a);
-        b = Number(b);
-        result = operations[operator](a, b);
-        displayResult(result, calculator.display.current.textContent)
-    }
+
 
     const displayResult = function(result, prevOp) {
         calculator.display.previous.textContent = prevOp + '=';
@@ -150,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // it shoudl store the result of the prior calculation, so can keep doing calculations with it
         // solar power
         // delay on with welcome message
+        // dont allow inputs to go off calculator screen
 });
 
 });
