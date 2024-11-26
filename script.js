@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cache DOM elements
     const calculator = {
         display: {
-            current: document.querySelector('.current-operation'),
+            current: document.querySelector('.current-operation span'),
             previous: document.querySelector('.previous-operation')
         },
         buttons: document.querySelector('.calc-rows'),
@@ -16,12 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
             num2: '',
         },
         operator: '',
+        lastResult: null,
         currentCount: 1,
         flags: {
             operatorInput: false,
             decimalInput: false,
-            percentInput: false,
-            shouldResetDisplay: false
+            shouldResetDisplay: false,
+            clearAll: false
         }  
     };
 
@@ -37,21 +38,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return rounded.toString().length > 12 ? rounded.toExponential(6) : rounded.toString();
     }
 
-    const operate = function(a, b, operator) {
-        const num1 = parseFloat(a);
-        const num2 = parseFloat(b);
+    const operate = () => {
+        const num1 = parseFloat(state.nums.num1);
+        const num2 = parseFloat(state.nums.num2) || 0;
 
         if (isNaN(num1) || isNaN(num2)) {
             return 'Error';
         }
 
-        const result = operations[operator](num1, num2);
+        const result = operations[state.operator](num1, num2);
 
         if (typeof result === 'string') {
-            displayResult(result, calculator.display.current.textContent);
+            calculator.display.current.textContent = result;
         } else {
-            displayResult(formatNumber(result), calculator.display.current.textContent)
+            calculator.display.previous.textContent = `${calculator.display.current.textContent}=`;
+            calculator.display.current.textContent = formatNumber(result);
+            state.lastResult = formatNumber(result);
         }
+        if (!state.lastResult) {
+            state.flags.shouldResetDisplay = true;
+        }
+
+        reset();
     };
 
     const reset = () => {
@@ -59,78 +67,121 @@ document.addEventListener('DOMContentLoaded', () => {
         state.nums.num1 = '';
         state.nums.num2 = '';
         state.operator = '';
-        calculator.operators.forEach(operator => operator.classList.remove('active'));
         state.flags.operatorInput = false;
         state.flags.decimalInput = false;
-    }
+        calculator.operators.forEach(operator => operator.classList.remove('active'));
 
-    const clear = function() {
-        state.currentCount = 1;
-        state.nums.num1 = '';
-        state.nums.num2 = '';
-        state.operator = '';
+        if (!state.flags.clearAll && state.lastResult !== null) {
+            state.nums.num1 = state.lastResult;
+            calculator.display.current.textContent = state.lastResult;
+        }
+        state.flags.clearAll = false;
+    };
+
+    const clear = () => {
+        state.flags.clearAll = true;
+        reset();
+        state.lastResult = null;
         calculator.display.current.textContent = '';
         calculator.display.previous.textContent = '';
         state.flags.shouldResetDisplay = false;
-        state.flags.operatorInput = false;
-        state.flags.decimalInput = false;
-        calculator.operators.forEach(operator => operator.classList.remove('active'));
-    }
+    };
 
+    const handleNumber = (number) => {
+        state.nums[`num${state.currentCount}`] += number;
 
+        const currentNum = state.nums[`num${state.currentCount}`];
+        
+        if (currentNum.length >= 12) {
+            calculator.display.previous.textContent = 'Max input length reached';
+            setTimeout(() => calculator.display.previous.textContent = '', 1000);
+            return;
+        };
 
-    const displayResult = function(result, prevOp) {
-        calculator.display.previous.textContent = prevOp + '=';
-        calculator.display.current.textContent = Math.round(result * 1000) / 1000;
-        state.flags.shouldResetDisplay = true;
-        reset();
-    }
-
-
-    calculator.buttons.addEventListener('click', (e) => {
-        if (state.flags.shouldResetDisplay === true) {
+        if (state.flags.shouldResetDisplay) {
             calculator.display.current.textContent = '';
+            state.flags.shouldResetDisplay = false;
         }
-        state.flags.shouldResetDisplay = false;
+        
+        calculator.display.current.textContent += number;
+    };
 
-        if (e.target.classList.contains('number')) {
-            state.nums[`num${state.currentCount}`] += e.target.textContent;
-            calculator.display.current.textContent += e.target.textContent;
-            
-        } else if (e.target.id === 'clear') {
-            clear();
-        } else if (state.flags.operatorInput === false && (e.target.id === 'add' || e.target.id === 'divide' || e.target.id === 'multiply' || e.target.id === 'subtract')) {
-            state.operator = e.target.id;
-            state.flags.operatorInput = true;
-            e.target.classList.add('active');
-            calculator.display.current.textContent += e.target.textContent;
-            state.currentCount++;
-            // need to fix what happens if start with operator
-        } else if (e.target.classList.contains('equals')) {
-            if (!state.nums.num1 || !state.nums.num2 || !state.operator) {
-                return state.nums.num2 ? displayResult(state.nums.num2, state.nums.num2) : displayResult(state.nums.num1, state.nums.num1);
-            }
-            operate(state.nums.num1, state.nums.num2, state.operator);   
-        } else if (state.flags.decimalInput === false && e.target.classList.contains('decimal')) {
-            state.nums[`num${state.currentCount}`] += '.';
+    const handleOperator = (operatorEl) => {
+        if (state.nums.num1 === '') {
+            state.nums.num1 = '0';
+        }
+        if (state.flags.operatorInput) {
+            operate();
+        };
+
+        state.operator = operatorEl.id;
+        state.flags.operatorInput = true;
+        state.currentCount = 2;
+        state.flags.decimalInput = false;
+
+        operatorEl.classList.add('active');
+        calculator.display.current.textContent += operatorEl.textContent;
+    };
+
+    const handleDecimal = () => {
+        if (state.flags.decimalInput) return;
+
+        const currentNum = `num${state.currentCount}`;
+        if (!state.flags.decimalInput) {
+            state.nums[currentNum] += '.';
             calculator.display.current.textContent += '.';
             state.flags.decimalInput = true;
-        } else if (state.flags.percentInput === false && e.target.id === 'percent') {
-            state.nums[`num${state.currentCount}`] = state.nums[`num${state.currentCount}`] / 100;
-            calculator.display.current.textContent = state.nums[`num${state.currentCount}`];
-            state.flags.percentInput = true;
+        }
+    };
+
+    const handlePercent = () => {
+        const currentNum = `num${state.currentCount}`;
+        if (state.nums[currentNum]) {
+            state.nums[currentNum] = (parseFloat(state.nums[currentNum]) / 100).toString();
+            calculator.display.current.textContent = state.nums[currentNum];
+        }
+    };
+
+    const handleSignChange = () => {
+        const currentNum = `num${state.currentCount}`;
+        if (state.nums[currentNum]) {
+            state.nums[currentNum] = (-parseFloat(state.nums[currentNum])).toString();
+            calculator.display.current.textContent = state.nums[currentNum];
+        }
+    };
+
+    const handleBackspace = () => {
+        const currentNum = `num${state.currentCount}`;
+        if (state.nums[currentNum]) {
+            state.nums[currentNum] = state.nums[currentNum].slice(0, -1);
+            calculator.display.current.textContent = state.nums[currentNum];
+        }
+    };
+
+    calculator.buttons.addEventListener('click', (e) => {
+        const target = e.target;
+
+        if (target.classList.contains('number')) {
+            handleNumber(target.textContent);            
+        } else if (target.id === 'clear') {
+            clear();
+        } else if (target.classList.contains('operator')) {
+            handleOperator(target);
+        } else if (e.target.classList.contains('equals')) {
+            operate();
+        } else if (target.classList.contains('decimal')) {
+            handleDecimal();
+        } else if (target.id === 'percent') {
+            handlePercent();
+        } else if (target.id === 'plus-minus') {
+            handleSignChange();
+        } else if (target.id === 'backspace') {
+            handleBackspace();
         }
         // need to add:
-        // - backspace
-        // - plus/minus
         // - add keyboard support
-        // make sure number stays on screen, doesnt exit
-        // 1e+XX functionality
-        // enter .1, press equals --> .1, then presss x & 5, it should show .5, but shows 5; 
-        // it shoudl store the result of the prior calculation, so can keep doing calculations with it
-        // solar power
         // delay on with welcome message
-        // dont allow inputs to go off calculator screen
+        // dark mode?
 });
 
 });
