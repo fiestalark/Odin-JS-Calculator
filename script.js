@@ -179,9 +179,20 @@ document.addEventListener('DOMContentLoaded', () => {
             handleBackspace();
         }
         // need to add:
-        // - add keyboard support
         // delay on with welcome message
         // dark mode?
-});
+    });
 
+    document.addEventListener('keydown', (e) => {
+        const key = e.key;
+        if(/[0-9]/.test(key)) handleNumber(key);
+        else if (key === '+') document.getElementById('add').click();
+        else if (key === '*') document.getElementById('multiply').click();
+        else if (key === '/') document.getElementById('divide').click();
+        else if (key === '-') document.getElementById('subtract').click();
+        else if (key === '=' || key === 'Enter') document.querySelector('.equals').click();
+        else if (key === '%') document.getElementById('percent').click();
+        else if (key === 'Backspace') handleBackspace();
+        else if (key === 'Escape') clear();
+    }); 
 });
